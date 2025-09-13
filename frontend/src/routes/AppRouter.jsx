@@ -6,8 +6,8 @@ import { useAuth } from '../context/AuthContext';
 // Pages
 import HomePage from '../pages/HomePage/HomePage';
 import GamePage from '../pages/GamePage/GamePage';
-// import DashboardPage from '../pages/DashboardPage';
-// import ProfilePage from '../pages/ProfilePage';
+import DashboardPage from '../pages/DashboardPage/DashboardPage';
+import ProfilePage from '../pages/ProfilePage/ProfilePage';
 // import NotFoundPage from '../pages/NotFoundPage';
 
 // Components
@@ -24,10 +24,10 @@ const AppRouter = () => {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/game" element={<GamePage />} />
-            {/* <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} /> */}
-            {/* <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-            <Route path="/404" element={<NotFoundPage />} /> */}
-            <Route path="*" element={<Navigate to="/404" replace />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            {/* <Route path="/404" element={<NotFoundPage />} />
+            <Route path="*" element={<Navigate to="/404" replace />} /> */}
           </Routes>
         </main>
         

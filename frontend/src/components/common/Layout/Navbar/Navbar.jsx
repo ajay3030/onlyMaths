@@ -1,5 +1,6 @@
 // src/components/common/Layout/Navbar/Navbar.jsx
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom'; // ADD this import
 import { useAuth } from '../../../../context/AuthContext';
 import { useUI } from '../../../../context/UIContext';
 import Button from '../../UI/Button';
@@ -7,6 +8,7 @@ import Button from '../../UI/Button';
 const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const { openModal } = useUI();
+  const location = useLocation(); // ADD this for active link highlighting
 
   const handleLoginClick = () => {
     openModal('auth', { mode: 'login' });
@@ -16,10 +18,12 @@ const Navbar = () => {
     openModal('auth', { mode: 'signup' });
   };
 
+  // UPDATE navigationItems - add Profile and remove non-existent pages
   const navigationItems = [
+    { name: 'Home', href: '/', icon: '🏠' }, // ADD Home
     { name: 'Dashboard', href: '/dashboard', icon: '📊' },
-    { name: 'Progress', href: '/progress', icon: '📈' },
-    { name: 'Achievements', href: '/achievements', icon: '🏆' }
+    { name: 'Profile', href: '/profile', icon: '👤' }, // CHANGE from Progress to Profile
+    // Remove Achievements for now since we don't have that page yet
   ];
 
   return (
@@ -31,12 +35,12 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-16">
           {/* Left side - Site name */}
           <div className="flex-shrink-0 group">
-            <div className="flex items-center space-x-3">
+            <Link to="/" className="flex items-center space-x-3"> {/* CHANGE: Make logo clickable */}
               <div className="text-3xl animate-bounce">🔢</div>
               <h1 className="text-white text-2xl font-bold tracking-wide group-hover:scale-105 transition-transform duration-300">
                 OnlyMaths
               </h1>
-            </div>
+            </Link>
           </div>
 
           {/* Center - Navigation items (when logged in) */}
@@ -44,14 +48,16 @@ const Navbar = () => {
             {isAuthenticated && (
               <div className="flex items-center space-x-1">
                 {navigationItems.map((item) => (
-                  <a
+                  <Link // CHANGE: Replace <a> with <Link>
                     key={item.name}
-                    href={item.href}
-                    className="text-white hover:bg-white hover:bg-opacity-20 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 transform hover:scale-105 flex items-center space-x-2"
+                    to={item.href} // CHANGE: href to 'to'
+                    className={`text-white hover:bg-white hover:bg-opacity-20 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 ${
+                      location.pathname === item.href ? 'bg-white bg-opacity-30' : '' // ADD: Active link highlighting
+                    }`}
                   >
                     <span>{item.icon}</span>
                     <span>{item.name}</span>
-                  </a>
+                  </Link>
                 ))}
               </div>
             )}
