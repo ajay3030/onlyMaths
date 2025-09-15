@@ -1,18 +1,79 @@
-// src/pages/GamePage/GamePage.jsx
-import React from 'react';
+// src/pages/GamePage/GamePage.jsx - ENHANCED VERSION
+import React, { useEffect } from 'react';
+import { useParams, Navigate } from 'react-router-dom';
 import { useGame } from '../../context/GameContext';
-import { Navigate } from 'react-router-dom';
 import { GAMES_CONFIG } from '../../utils/constants/gameConfig';
 
-const GamePage = () => {
-  const { currentGame, gameState, score, timeLeft, resetGame } = useGame();
+// Import Game Components
+import GameContainer from '../../components/games/GameEngine/GameContainer';
+import ArithmeticGame from '../../components/games/ArithmeticGame';
+import GameCountdown from '../../components/games/GameEngine/GameCountdown';
+import GameResults from '../../components/games/GameEngine/GameResults';
 
-  // Redirect if no game is selected
-  if (!currentGame) {
+const GamePage = () => {
+  const { gameId } = useParams(); // Get gameId from URL: /game/arithmetic-basic
+  const { 
+    currentGame, 
+    gameState, 
+    score, 
+    timeLeft, 
+    resetGame,
+    startEnhancedGame,
+    gameTemplate,
+    isLoading,
+    error
+  } = useGame();
+
+  // Start the game when component mounts with gameId from URL
+  useEffect(() => {
+    if (gameId && (!currentGame || currentGame !== gameId)) {
+      console.log(`Starting enhanced game: ${gameId}`);
+      startEnhancedGame(gameId);
+    }
+  }, [gameId, currentGame, startEnhancedGame]);
+
+  // Redirect if no game ID in URL
+  if (!gameId) {
     return <Navigate to="/" replace />;
   }
 
-  const gameConfig = GAMES_CONFIG[currentGame];
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading game...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+          <div className="text-6xl mb-4">❌</div>
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Game Error</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <button
+            onClick={() => window.location.href = '/'}
+            className="bg-purple-500 text-white px-6 py-2 rounded-lg hover:bg-purple-600"
+          >
+            Return Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Get game config (fallback to gameTemplate if GAMES_CONFIG doesn't have it)
+  const gameConfig = GAMES_CONFIG[gameId] || gameTemplate || {
+    name: 'Math Game',
+    description: 'Practice your math skills',
+    icon: '🔢'
+  };
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -24,9 +85,36 @@ const GamePage = () => {
     resetGame();
   };
 
+  // Render specific game component based on game type
+  const renderGameComponent = () => {
+    if (!gameTemplate) return null;
+
+    switch (gameTemplate.type) {
+      case 'arithmetic':
+        return <ArithmeticGame />;
+      // Add more game types here as we create them
+      // case 'memory':
+      //   return <MemoryGame />;
+      // case 'sequence':
+      //   return <SequenceGame />;
+      default:
+        return (
+          <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+            <div className="text-6xl mb-6">🚧</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">
+              Game Type Not Implemented
+            </h2>
+            <p className="text-gray-600">
+              Game type "{gameTemplate.type}" is not yet implemented.
+            </p>
+          </div>
+        );
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100">
-      {/* Game Header */}
+      {/* Game Header - Enhanced but maintains existing structure */}
       <div className="bg-white shadow-lg border-b-4 border-purple-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
@@ -36,6 +124,11 @@ const GamePage = () => {
               <div>
                 <h1 className="text-2xl font-bold text-gray-800">{gameConfig.name}</h1>
                 <p className="text-gray-600">{gameConfig.description}</p>
+                {gameState === 'playing' && gameTemplate && (
+                  <p className="text-sm text-purple-600">
+                    Difficulty: {gameTemplate.difficulty} • Questions: {gameTemplate.config?.questionCount}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -60,47 +153,73 @@ const GamePage = () => {
         </div>
       </div>
 
-      {/* Game Content */}
+      {/* Game Content - Enhanced with new game states */}
       <div className="flex-1 p-8">
         <div className="max-w-4xl mx-auto">
+          
+          {/* Countdown State */}
+          {gameState === 'countdown' && (
+            <GameCountdown />
+          )}
+
+          {/* Playing State - Render specific game component */}
           {gameState === 'playing' && (
+            <GameContainer>
+              {renderGameComponent()}
+            </GameContainer>
+          )}
+
+          {/* Paused State */}
+          {gameState === 'paused' && (
             <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-              <div className="text-6xl mb-6">{gameConfig.icon}</div>
+              <div className="text-6xl mb-6">⏸️</div>
               <h2 className="text-3xl font-bold text-gray-800 mb-4">
-                {gameConfig.name} is Starting!
+                Game Paused
               </h2>
               <p className="text-gray-600 mb-8">
-                This is where the actual game would be implemented. 
-                Each game would have its own component with specific logic.
+                Take a break! Your progress is saved.
               </p>
-              
-              {/* Sample Game Interface */}
-              <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl p-8">
-                <div className="text-4xl mb-4">🎯</div>
-                <p className="text-lg text-gray-700">
-                  Game interface will be implemented here based on the specific game type.
-                </p>
+              <div className="space-x-4">
+                <button
+                  onClick={() => useGame().resumeGame()}
+                  className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600"
+                >
+                  Resume Game
+                </button>
+                <button
+                  onClick={handleExitGame}
+                  className="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600"
+                >
+                  Exit Game
+                </button>
               </div>
             </div>
           )}
 
+          {/* Finished State - Enhanced results */}
           {gameState === 'finished' && (
+            <GameResults onPlayAgain={() => startEnhancedGame(gameId)} />
+          )}
+
+          {/* Idle State - Fallback */}
+          {gameState === 'idle' && (
             <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-              <div className="text-6xl mb-6">🎉</div>
+              <div className="text-6xl mb-6">🎮</div>
               <h2 className="text-3xl font-bold text-gray-800 mb-4">
-                Great Job!
+                Ready to Play?
               </h2>
-              <p className="text-xl text-gray-600 mb-6">
-                You scored {score} points in {gameConfig.name}!
+              <p className="text-gray-600 mb-8">
+                Click start to begin {gameConfig.name}!
               </p>
               <button
-                onClick={handleExitGame}
+                onClick={() => startEnhancedGame(gameId)}
                 className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-3 rounded-full font-semibold hover:scale-105 transition-transform"
               >
-                Play Again
+                Start Game
               </button>
             </div>
           )}
+
         </div>
       </div>
     </div>
