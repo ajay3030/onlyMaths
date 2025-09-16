@@ -14,7 +14,8 @@ const HomePage = () => {
     console.log('🏠 HomePage - handleTimerComplete called');
   startPlaying();
   console.log('🎮 startPlaying called, navigating to /game');
-  navigate('/game');
+  const gameId = 'arithmetic-game'; // Use currentGame from context
+  navigate(`/game/${gameId}`);
   },[[startPlaying, navigate]]);
 
   return (

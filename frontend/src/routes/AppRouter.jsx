@@ -26,6 +26,8 @@ const AppRouter = () => {
             <Route path="/game" element={<GamePage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/game/:gameId" element={<GamePage />} />
+
             {/* <Route path="/404" element={<NotFoundPage />} />
             <Route path="*" element={<Navigate to="/404" replace />} /> */}
           </Routes>

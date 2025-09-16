@@ -6,7 +6,7 @@ import { GAMES_CONFIG } from "../../../../utils/constants/gameConfig";
 const GameTimer = ({ onComplete }) => {
   const { currentGame, gameState } = useGame();
   const [countdown, setCountdown] = useState(3);
-  const timerRef = useRef(null); 
+  //const timerRef = useRef(null); 
   const gameConfig = currentGame ? GAMES_CONFIG[currentGame] : null;
 
   // In GameTimer.jsx - Add logging:
@@ -42,7 +42,7 @@ const GameTimer = ({ onComplete }) => {
   //     return () => clearInterval(timer);
   //   }
   // }, [gameState, onComplete]);
-
+//GameContext
   // useEffect(() => {
   //   if (gameState === 'countdown') {
   //     setCountdown(3);

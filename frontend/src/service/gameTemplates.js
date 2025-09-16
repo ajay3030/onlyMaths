@@ -1,5 +1,31 @@
 // src/services/gameTemplates.js
 export const gameTemplates = {
+  'arithmetic-game': {
+    id: 'arithmetic-game',
+    name: 'Arithmetic Game',
+    description: 'Practice basic math operations',
+    type: 'arithmetic',
+    category: 'math',
+    difficulty: 'medium',
+    icon: '🔢',
+    config: {
+      operations: ['+', '-', '*', '/'],
+      numberRange: { min: 1, max: 20 },
+      questionCount: 10,
+      timePerQuestion: 15, // seconds
+      timeLimit: 150, // total seconds
+      multipleChoice: false,
+      allowNegative: false
+    },
+    scoring: {
+      basePoints: 10,
+      timeBonus: 5,
+      streakBonus: 2,
+      difficultyMultiplier: 1.2
+    },
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
   'arithmetic-basic': {
     id: 'arithmetic-basic',
     name: 'Basic Arithmetic',
