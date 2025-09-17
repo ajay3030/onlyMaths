@@ -1,4 +1,4 @@
-// src/pages/GamePage/GamePage.jsx - ENHANCED VERSION
+// src/pages/GamePage/GamePage.jsx - UPDATED FOR OPTION B
 import React, { useEffect } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { useGame } from '../../context/GameContext';
@@ -11,7 +11,7 @@ import GameCountdown from '../../components/games/GameEngine/GameCountdown';
 import GameResults from '../../components/games/GameEngine/GameResults';
 
 const GamePage = () => {
-  const { gameId } = useParams(); // Get gameId from URL: /game/arithmetic-basic
+  const { gameId } = useParams(); // Get gameId from URL: /game/arithmetic-game
   const { 
     currentGame, 
     gameState, 
@@ -19,18 +19,25 @@ const GamePage = () => {
     timeLeft, 
     resetGame,
     startEnhancedGame,
+    resumeGame,
     gameTemplate,
+    currentQuestion, // ADD this to check if question is loaded
     isLoading,
     error
   } = useGame();
 
-  // Start the game when component mounts with gameId from URL
+  // UPDATED: Start enhanced game only when modal timer completes
   useEffect(() => {
-    if (gameId && (!currentGame || currentGame !== gameId)) {
-      console.log(`Starting enhanced game: ${gameId}`);
+    // Start enhanced game when:
+    // 1. We have gameId from URL
+    // 2. Game state is 'playing' (modal timer completed)
+    // 3. We don't already have a question loaded
+    // 4. Not currently loading
+    if (gameId && gameState === 'playing' && !currentQuestion && !isLoading) {
+      console.log(`🎮 GamePage: Modal timer completed, starting enhanced game ${gameId}`);
       startEnhancedGame(gameId);
     }
-  }, [gameId, currentGame, startEnhancedGame]);
+  }, [gameId, gameState, currentQuestion, isLoading, startEnhancedGame]);
 
   // Redirect if no game ID in URL
   if (!gameId) {
@@ -153,20 +160,45 @@ const GamePage = () => {
         </div>
       </div>
 
-      {/* Game Content - Enhanced with new game states */}
+      {/* Game Content - UPDATED for Option B */}
       <div className="flex-1 p-8">
         <div className="max-w-4xl mx-auto">
           
-          {/* Countdown State */}
+          {/* UPDATED: Countdown State - Show waiting message instead of GameCountdown */}
           {gameState === 'countdown' && (
-            <GameCountdown />
+            <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+              <div className="text-6xl mb-6">⏰</div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                Get Ready!
+              </h2>
+              <p className="text-gray-600">
+                Game will start when timer completes...
+              </p>
+              <div className="mt-4 text-sm text-gray-500">
+                Current State: {gameState}
+              </div>
+            </div>
           )}
 
-          {/* Playing State - Render specific game component */}
+          {/* UPDATED: Playing State - Handle loading questions */}
           {gameState === 'playing' && (
-            <GameContainer>
-              {renderGameComponent()}
-            </GameContainer>
+            <>
+              {!currentQuestion ? (
+                // Show loading while questions are being prepared
+                <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Preparing questions...</p>
+                  <div className="mt-4 text-xs text-gray-400">
+                    Game Template: {gameTemplate?.name || 'Loading...'}
+                  </div>
+                </div>
+              ) : (
+                // Show actual game when questions are ready
+                <GameContainer>
+                  {renderGameComponent()}
+                </GameContainer>
+              )}
+            </>
           )}
 
           {/* Paused State */}
@@ -181,7 +213,7 @@ const GamePage = () => {
               </p>
               <div className="space-x-4">
                 <button
-                  onClick={() => useGame().resumeGame()}
+                  onClick={resumeGame}
                   className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600"
                 >
                   Resume Game
@@ -196,26 +228,32 @@ const GamePage = () => {
             </div>
           )}
 
-          {/* Finished State - Enhanced results */}
+          {/* Finished State - UPDATED play again logic */}
           {gameState === 'finished' && (
-            <GameResults onPlayAgain={() => startEnhancedGame(gameId)} />
+            <GameResults onPlayAgain={() => {
+              // Reset and go back to home to restart the full flow
+              resetGame();
+              setTimeout(() => {
+                window.location.href = '/';
+              }, 500);
+            }} />
           )}
 
-          {/* Idle State - Fallback */}
+          {/* UPDATED: Idle State - Better fallback */}
           {gameState === 'idle' && (
             <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
               <div className="text-6xl mb-6">🎮</div>
               <h2 className="text-3xl font-bold text-gray-800 mb-4">
-                Ready to Play?
+                Game Not Started
               </h2>
               <p className="text-gray-600 mb-8">
-                Click start to begin {gameConfig.name}!
+                Please go back to home and start the game properly.
               </p>
               <button
-                onClick={() => startEnhancedGame(gameId)}
+                onClick={() => window.location.href = '/'}
                 className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-3 rounded-full font-semibold hover:scale-105 transition-transform"
               >
-                Start Game
+                Back to Home
               </button>
             </div>
           )}

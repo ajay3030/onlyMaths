@@ -162,41 +162,43 @@ export const GameProvider = ({ children }) => {
     }
   }, []);
 
-  const startEnhancedGame = useCallback(async (gameId) => {
-    try {
-      const { template, instance } = await loadGame(gameId);
+  // const startEnhancedGame = useCallback(async (gameId) => {
+  //   try {
+  //     const { template, instance } = await loadGame(gameId);
       
-      // Start countdown using existing startGame method
-      startGame(gameId, template.config.timeLimit);
+  //     // Start countdown using existing startGame method
+  //     startGame(gameId, template.config.timeLimit);
       
-      // Start countdown timer
-      let countdown = 3;
-      countdownRef.current = setInterval(() => {
-        console.log(`Starting in ${countdown}...`);
+  //     // Start countdown timer
+  //     let countdown = 3;
+  //     countdownRef.current = setInterval(() => {
+  //       console.log(`Starting in ${countdown}...`);
         
-        if (countdown <= 0) {
-          clearInterval(countdownRef.current);
+  //       if (countdown <= 0) {
+  //         clearInterval(countdownRef.current);
           
-          // Start actual game
-          const firstQuestion = instance.startGame();
-          setCurrentQuestion(firstQuestion);
-          setCurrentQuestionIndex(0);
-          setTotalTimeLeft(template.config.timeLimit * 1000);
+  //         // Start actual game
+  //         const firstQuestion = instance.startGame();
+  //         setCurrentQuestion(firstQuestion);
+  //         setCurrentQuestionIndex(0);
+  //         setTotalTimeLeft(template.config.timeLimit * 1000);
           
-          // Use existing startPlaying method
-          startPlaying();
+  //         // Use existing startPlaying method
+  //         startPlaying();
           
-          // Start enhanced timers
-          startEnhancedTimers(template.config.timePerQuestion * 1000, template.config.timeLimit * 1000);
-        }
-        countdown--;
-      }, 1000);
+  //         // Start enhanced timers
+  //         startEnhancedTimers(template.config.timePerQuestion * 1000, template.config.timeLimit * 1000);
+  //       }
+  //       countdown--;
+  //     }, 1000);
       
-    } catch (error) {
-      console.error('Failed to start enhanced game:', error);
-      setError(error.message);
-    }
-  }, [loadGame, startGame, startPlaying]);
+  //   } catch (error) {
+  //     console.error('Failed to start enhanced game:', error);
+  //     setError(error.message);
+  //   }
+  // }, [loadGame, startGame, startPlaying]);
+
+  // In GameProvider.jsx - REPLACE the startEnhancedGame method
 
   const startEnhancedTimers = useCallback((questionTime, totalTime) => {
     // Question timer
@@ -222,6 +224,42 @@ export const GameProvider = ({ children }) => {
       }
     }, 1000);
   }, []);
+
+  const startEnhancedGame = useCallback(async (gameId) => {
+  console.log('🚀 Starting enhanced game (no countdown):', gameId);
+  
+  try {
+    const { template, instance } = await loadGame(gameId);
+    console.log('✅ Game loaded:', template.name);
+    console.log('📝 Questions generated:', instance.questions.length);
+    
+    // Start game immediately (modal timer already handled countdown)
+    const firstQuestion = instance.startGame();
+    console.log('❓ First question:', firstQuestion);
+    
+    // Set question state immediately - no countdown needed
+    setCurrentQuestion(firstQuestion);
+    setCurrentQuestionIndex(0);
+    setTotalTimeLeft(template.config.timeLimit * 1000);
+    
+    // Update existing score for backward compatibility
+    setScore(0);
+    setStreak(0);
+    setBestStreak(0);
+    setAnswers([]);
+    
+    console.log('🎮 Game ready with first question');
+    
+    // Start only the question and game timers (no countdown timer)
+    startEnhancedTimers(template.config.timePerQuestion * 1000, template.config.timeLimit * 1000);
+    
+  } catch (error) {
+    console.error('❌ Failed to start enhanced game:', error);
+    setError(error.message);
+  }
+}, [loadGame, startEnhancedTimers]);
+
+  
 
   const submitAnswer = useCallback((userAnswer) => {
     if (!gameInstance || gameState !== 'playing') {
