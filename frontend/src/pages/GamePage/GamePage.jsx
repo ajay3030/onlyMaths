@@ -144,6 +144,7 @@ const GamePage = () => {
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">{score}</div>
                 <div className="text-sm text-gray-600">Score</div>
+                <div className="text-xs text-gray-400">Debug: {score}</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-600">{formatTime(timeLeft)}</div>

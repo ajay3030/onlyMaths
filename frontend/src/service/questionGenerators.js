@@ -41,11 +41,75 @@ const generateMultipleChoiceOptions = (correctAnswer, count = 4) => {
 };
 
 // Main question generator for arithmetic
+// In questionGenerators.js - Add validation to arithmetic generator
+// export const arithmeticGenerator = (config) => {
+//   const questions = [];
+  
+//   console.log('🏭 Generating questions with config:', config);
+  
+//   for (let i = 0; i < config.questionCount; i++) {
+//     let num1, num2, operation, answer;
+//     let attempts = 0;
+    
+//     // Generate valid question (avoid negative results if not allowed)
+//     do {
+//       operation = randomChoice(config.operations);
+//       num1 = randomBetween(config.numberRange.min, config.numberRange.max);
+//       num2 = randomBetween(config.numberRange.min, config.numberRange.max);
+      
+//       // For division, ensure num1 is divisible by num2
+//       if (operation === '/') {
+//         num1 = num2 * randomBetween(2, 10); // Make it divisible
+//       }
+      
+//       answer = calculateAnswer(num1, operation, num2);
+//       attempts++;
+      
+//       if (attempts > 100) {
+//         console.error('❌ Too many attempts generating question', i + 1);
+//         break;
+//       }
+//     } while (!config.allowNegative && answer < 0);
+    
+//     const question = {
+//       id: `q_${i + 1}`,
+//       questionNumber: i + 1,
+//       num1,
+//       num2,
+//       operation,
+//       questionText: `${num1} ${operation} ${num2}`,
+//       answer,
+//       userAnswer: null,
+//       isCorrect: null,
+//       timeSpent: 0,
+//       points: 0,
+//       ...(config.multipleChoice && {
+//         options: generateMultipleChoiceOptions(answer)
+//       })
+//     };
+    
+//     console.log(`✅ Generated question ${i + 1}:`, {
+//       id: question.id,
+//       text: question.questionText,
+//       answer: question.answer
+//     });
+    
+//     questions.push(question);
+//   }
+  
+//   console.log('🎯 Total questions generated:', questions.length);
+//   return questions;
+// };
+
+// In questionGenerators.js - Add validation to arithmetic generator
 export const arithmeticGenerator = (config) => {
   const questions = [];
   
+  console.log('🏭 Generating questions with config:', config);
+  
   for (let i = 0; i < config.questionCount; i++) {
     let num1, num2, operation, answer;
+    let attempts = 0;
     
     // Generate valid question (avoid negative results if not allowed)
     do {
@@ -59,6 +123,12 @@ export const arithmeticGenerator = (config) => {
       }
       
       answer = calculateAnswer(num1, operation, num2);
+      attempts++;
+      
+      if (attempts > 100) {
+        console.error('❌ Too many attempts generating question', i + 1);
+        break;
+      }
     } while (!config.allowNegative && answer < 0);
     
     const question = {
@@ -78,11 +148,20 @@ export const arithmeticGenerator = (config) => {
       })
     };
     
+    console.log(`✅ Generated question ${i + 1}:`, {
+      id: question.id,
+      text: question.questionText,
+      answer: question.answer
+    });
+    
     questions.push(question);
   }
   
+  console.log('🎯 Total questions generated:', questions.length);
   return questions;
 };
+
+
 
 // Export generators for other game types (future)
 export const memoryGenerator = (config) => {

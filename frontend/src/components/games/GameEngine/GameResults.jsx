@@ -1,9 +1,23 @@
-// src/components/games/GameEngine/GameResults.jsx
+// src/components/games/GameEngine/GameResults.jsx - FIXED VERSION
 import React from 'react';
 import { useGame } from '../../../context/GameContext';
 
 const GameResults = ({ onPlayAgain }) => {
   const { gameResult, score, resetGame } = useGame();
+
+  // DEBUG: Log all score sources
+  console.log('🎯 GameResults Debug:', {
+    gameResultExists: !!gameResult,
+    gameResultTotalScore: gameResult?.totalScore,
+    contextScore: score,
+    gameResult: gameResult
+  });
+
+  // Use gameResult.totalScore as primary source, context score as fallback
+  const displayScore = gameResult?.totalScore ?? score;
+  const displayAccuracy = gameResult?.accuracy ?? 0;
+  const displayCorrect = gameResult?.correctAnswers ?? 0;
+  const displayStreak = gameResult?.bestStreak ?? 0;
 
   const getPerformanceMessage = (accuracy) => {
     if (accuracy >= 90) return { message: "Outstanding! 🏆", color: "text-yellow-500" };
@@ -13,7 +27,7 @@ const GameResults = ({ onPlayAgain }) => {
     return { message: "Keep practicing! 📚", color: "text-gray-500" };
   };
 
-  const performance = getPerformanceMessage(gameResult?.accuracy || 0);
+  const performance = getPerformanceMessage(displayAccuracy);
 
   return (
     <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
@@ -21,27 +35,31 @@ const GameResults = ({ onPlayAgain }) => {
       <h2 className="text-3xl font-bold text-gray-800 mb-2">Game Complete!</h2>
       <p className={`text-xl mb-8 ${performance.color}`}>{performance.message}</p>
       
-      {gameResult && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-green-50 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-green-600">{gameResult.totalScore}</div>
-            <div className="text-sm text-gray-600">Total Score</div>
-          </div>
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-blue-600">{gameResult.accuracy}%</div>
-            <div className="text-sm text-gray-600">Accuracy</div>
-          </div>
-          <div className="bg-purple-50 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-purple-600">{gameResult.correctAnswers}</div>
-            <div className="text-sm text-gray-600">Correct</div>
-          </div>
-          <div className="bg-yellow-50 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-yellow-600">{gameResult.bestStreak}</div>
-            <div className="text-sm text-gray-600">Best Streak</div>
-          </div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-green-50 p-4 rounded-lg">
+          <div className="text-2xl font-bold text-green-600">{displayScore}</div>
+          <div className="text-sm text-gray-600">Total Score</div>
+          {/* DEBUG INFO - Remove after fixing */}
+          {/* <div className="text-xs text-gray-400">
+            R:{gameResult?.totalScore} | C:{score}
+          </div> */}
         </div>
-      )}
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <div className="text-2xl font-bold text-blue-600">{displayAccuracy}%</div>
+          <div className="text-sm text-gray-600">Accuracy</div>
+        </div>
+        <div className="bg-purple-50 p-4 rounded-lg">
+          <div className="text-2xl font-bold text-purple-600">{displayCorrect}</div>
+          <div className="text-sm text-gray-600">Correct</div>
+        </div>
+        <div className="bg-yellow-50 p-4 rounded-lg">
+          <div className="text-2xl font-bold text-yellow-600">{displayStreak}</div>
+          <div className="text-sm text-gray-600">Best Streak</div>
+        </div>
+      </div>
 
+      {/* Buttons */}
       <div className="space-x-4">
         <button
           onClick={onPlayAgain}
@@ -56,6 +74,16 @@ const GameResults = ({ onPlayAgain }) => {
           Back to Home
         </button>
       </div>
+
+      {/* DEBUG SECTION - Remove after fixing */}
+      {/* <div className="mt-6 p-4 bg-gray-50 rounded text-xs text-left">
+        <strong>DEBUG INFO:</strong><br/>
+        Game Result Exists: {gameResult ? 'Yes' : 'No'}<br/>
+        Game Result Total Score: {gameResult?.totalScore}<br/>
+        Context Score: {score}<br/>
+        Display Score: {displayScore}<br/>
+        Game Result Object: {JSON.stringify(gameResult, null, 2)}
+      </div> */}
     </div>
   );
 };

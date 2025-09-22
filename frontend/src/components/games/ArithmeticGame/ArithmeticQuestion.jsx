@@ -2,6 +2,16 @@
 import React from 'react';
 
 const ArithmeticQuestion = ({ question, showFeedback, lastAnswer }) => {
+
+  console.log('🎯 ArithmeticQuestion render:', {
+    questionId: question?.id,
+    questionNumber: question?.questionNumber,
+    num1: question?.num1,
+    num2: question?.num2,
+    operation: question?.operation,
+    questionText: question?.questionText
+  });
+
   const getOperatorSymbol = (operator) => {
     const symbols = {
       '+': '+',
@@ -11,6 +21,19 @@ const ArithmeticQuestion = ({ question, showFeedback, lastAnswer }) => {
     };
     return symbols[operator] || operator;
   };
+
+  if (!question || question.num1 === undefined || question.num2 === undefined || !question.operation) {
+    console.error('❌ Invalid question data:', question);
+    return (
+      <div className="text-center">
+        <div className="bg-red-50 rounded-2xl p-8 mb-6">
+          <div className="text-2xl text-red-600 font-bold">
+            Question Error: Invalid question data
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const getFeedbackDisplay = () => {
     if (!showFeedback || !lastAnswer) return null;
@@ -63,6 +86,11 @@ const ArithmeticQuestion = ({ question, showFeedback, lastAnswer }) => {
       {/* Question Text Alternative */}
       <div className="text-lg text-gray-600 mb-4">
         What is {question.num1} {getOperatorSymbol(question.operation)} {question.num2}?
+      </div>
+
+      {/* DEBUG INFO - Remove after fixing */}
+      <div className="text-xs text-gray-400 mb-4">
+        Debug: ID={question.id} | Q#{question.questionNumber} | {question.num1} {question.operation} {question.num2}
       </div>
 
       {/* Feedback Display */}
