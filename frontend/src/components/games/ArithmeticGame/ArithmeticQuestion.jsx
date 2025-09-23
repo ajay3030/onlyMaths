@@ -69,29 +69,52 @@ const ArithmeticQuestion = ({ question, showFeedback, lastAnswer }) => {
     );
   };
 
+  // return (
+  //   <div className="text-center">
+  //     {/* Question Number */}
+  //     <div className="text-sm text-gray-500 mb-2">
+  //       Question {question.questionNumber}
+  //     </div>
+      
+  //     {/* Main Question */}
+  //     <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-8 mb-6">
+  //       <div className="text-5xl md:text-6xl font-bold text-gray-800 font-mono">
+  //         {question.num1} {getOperatorSymbol(question.operation)} {question.num2} = ?
+  //       </div>
+  //     </div>
+
+  //     {/* Question Text Alternative */}
+  //     <div className="text-lg text-gray-600 mb-4">
+  //       What is {question.num1} {getOperatorSymbol(question.operation)} {question.num2}?
+  //     </div>
+
+  //     {/* DEBUG INFO - Remove after fixing */}
+  //     <div className="text-xs text-gray-400 mb-4">
+  //       Debug: ID={question.id} | Q#{question.questionNumber} | {question.num1} {question.operation} {question.num2}
+  //     </div>
+
+  //     {/* Feedback Display */}
+  //     {getFeedbackDisplay()}
+  //   </div>
+  // );
   return (
     <div className="text-center">
       {/* Question Number */}
-      <div className="text-sm text-gray-500 mb-2">
+      <div className="text-xs text-gray-500 mb-2">
         Question {question.questionNumber}
       </div>
       
-      {/* Main Question */}
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-8 mb-6">
-        <div className="text-5xl md:text-6xl font-bold text-gray-800 font-mono">
+      {/* Main Question - Reduced size */}
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 mb-4"> {/* Reduced padding and margin */}
+        <div className="text-4xl md:text-5xl font-bold text-gray-800 font-mono"> {/* Reduced size */}
           {question.num1} {getOperatorSymbol(question.operation)} {question.num2} = ?
         </div>
       </div>
 
       {/* Question Text Alternative */}
-      <div className="text-lg text-gray-600 mb-4">
-        What is {question.num1} {getOperatorSymbol(question.operation)} {question.num2}?
-      </div>
-
-      {/* DEBUG INFO - Remove after fixing */}
-      <div className="text-xs text-gray-400 mb-4">
-        Debug: ID={question.id} | Q#{question.questionNumber} | {question.num1} {question.operation} {question.num2}
-      </div>
+      {/* <div className="text-base text-gray-600 mb-3"> {/* Reduced size and margin */}
+        {/* What is {question.num1} {getOperatorSymbol(question.operation)} {question.num2}?
+      </div> */} 
 
       {/* Feedback Display */}
       {getFeedbackDisplay()}

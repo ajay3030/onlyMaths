@@ -94,9 +94,9 @@ const ArithmeticInput = ({ onSubmit, disabled = false, questionType = 'input', o
       </div>
       
       {/* DEBUG - Remove after fixing */}
-      <div className="text-center text-xs text-gray-400">
+      {/* <div className="text-center text-xs text-gray-400">
         Q: {currentQuestion?.id} | Answer: "{answer}" | Last Q: {lastQuestionId}
-      </div>
+      </div> */}
     </form>
   );
 };

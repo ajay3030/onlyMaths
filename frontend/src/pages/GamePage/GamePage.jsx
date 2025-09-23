@@ -9,9 +9,11 @@ import GameContainer from '../../components/games/GameEngine/GameContainer';
 import ArithmeticGame from '../../components/games/ArithmeticGame';
 import GameCountdown from '../../components/games/GameEngine/GameCountdown';
 import GameResults from '../../components/games/GameEngine/GameResults';
-
+import { useNavigate } from 'react-router-dom';
 const GamePage = () => {
   const { gameId } = useParams(); // Get gameId from URL: /game/arithmetic-game
+  const navigate = useNavigate();
+
   const { 
     currentGame, 
     gameState, 
@@ -25,6 +27,18 @@ const GamePage = () => {
     isLoading,
     error
   } = useGame();
+
+  const handleExitGame = () => {
+    console.log('🚪 Exiting game directly');
+    resetGame();
+    navigate('/'); // Direct navigation, no delay
+  };
+
+  const handleBackToHome = () => {
+    console.log('🏠 Going back to home directly');
+    resetGame();
+    navigate('/'); // Direct navigation
+  };
 
   // UPDATED: Start enhanced game only when modal timer completes
   useEffect(() => {
@@ -44,6 +58,7 @@ const GamePage = () => {
     return <Navigate to="/" replace />;
   }
 
+  
   // Show loading state
   if (isLoading) {
     return (
@@ -88,9 +103,11 @@ const GamePage = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleExitGame = () => {
-    resetGame();
-  };
+  // const handleExitGame = () => {
+  //   console.log('🚪 Exiting game...');
+  //   resetGame();
+  //   window.location.href = '/';
+  // };
 
   // Render specific game component based on game type
   const renderGameComponent = () => {
@@ -119,40 +136,40 @@ const GamePage = () => {
     }
   };
 
+  
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100">
-      {/* Game Header - Enhanced but maintains existing structure */}
-      <div className="bg-white shadow-lg border-b-4 border-purple-500">
+    <div className="h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 flex flex-col">
+      {/* FIXED: Sticky Game Header - always visible */}
+      <div className="bg-white shadow-lg border-b-4 border-purple-500 sticky top-0 z-10 shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             {/* Game Info */}
             <div className="flex items-center space-x-4">
-              <div className="text-4xl">{gameConfig.icon}</div>
+              <div className="text-3xl">{gameConfig.icon}</div> {/* Reduced size */}
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">{gameConfig.name}</h1>
-                <p className="text-gray-600">{gameConfig.description}</p>
+                <h1 className="text-xl font-bold text-gray-800">{gameConfig.name}</h1> {/* Reduced size */}
+                <p className="text-sm text-gray-600">{gameConfig.description}</p>
                 {gameState === 'playing' && gameTemplate && (
-                  <p className="text-sm text-purple-600">
+                  <p className="text-xs text-purple-600">
                     Difficulty: {gameTemplate.difficulty} • Questions: {gameTemplate.config?.questionCount}
                   </p>
                 )}
               </div>
             </div>
 
-            {/* Game Stats */}
-            <div className="flex items-center space-x-6">
+            {/* Game Stats - Compact */}
+            <div className="flex items-center space-x-4"> {/* Reduced spacing */}
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{score}</div>
-                <div className="text-sm text-gray-600">Score</div>
-                <div className="text-xs text-gray-400">Debug: {score}</div>
+                <div className="text-xl font-bold text-green-600">{score}</div> {/* Reduced size */}
+                <div className="text-xs text-gray-600">Score</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{formatTime(timeLeft)}</div>
-                <div className="text-sm text-gray-600">Time Left</div>
+                <div className="text-xl font-bold text-blue-600">{formatTime(timeLeft)}</div> {/* Reduced size */}
+                <div className="text-xs text-gray-600">Time Left</div>
               </div>
               <button
                 onClick={handleExitGame}
-                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
+                className="bg-red-500 text-white px-3 py-2 text-sm rounded-lg hover:bg-red-600 transition-colors" // Reduced size
               >
                 Exit Game
               </button>
@@ -161,40 +178,51 @@ const GamePage = () => {
         </div>
       </div>
 
-      {/* Game Content - UPDATED for Option B */}
-      <div className="flex-1 p-8">
-        <div className="max-w-4xl mx-auto">
+      {/* FIXED: Scrollable Game Content - constrained height */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto p-6"> {/* Reduced padding */}
           
-          {/* UPDATED: Countdown State - Show waiting message instead of GameCountdown */}
-          {gameState === 'countdown' && (
+          {/* Loading State */}
+          {isLoading && (
             <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-              <div className="text-6xl mb-6">⏰</div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">
-                Get Ready!
-              </h2>
-              <p className="text-gray-600">
-                Game will start when timer completes...
-              </p>
-              <div className="mt-4 text-sm text-gray-500">
-                Current State: {gameState}
-              </div>
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading game...</p>
             </div>
           )}
 
-          {/* UPDATED: Playing State - Handle loading questions */}
-          {gameState === 'playing' && (
+          {/* Error State */}
+          {error && (
+            <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+              <div className="text-6xl mb-4">❌</div>
+              <h2 className="text-2xl font-bold text-red-600 mb-4">Game Error</h2>
+              <p className="text-gray-600 mb-6">{error}</p>
+              <button
+                onClick={() => window.location.href = '/'}
+                className="bg-purple-500 text-white px-6 py-2 rounded-lg hover:bg-purple-600"
+              >
+                Return Home
+              </button>
+            </div>
+          )}
+
+          {/* Countdown State */}
+          {gameState === 'countdown' && !isLoading && (
+            <div className="bg-white rounded-2xl shadow-xl p-6 text-center"> {/* Reduced padding */}
+              <div className="text-4xl mb-4">⏰</div> {/* Reduced size */}
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Get Ready!</h2>
+              <p className="text-gray-600">Game will start when timer completes...</p>
+            </div>
+          )}
+
+          {/* Playing State */}
+          {gameState === 'playing' && !isLoading && (
             <>
               {!currentQuestion ? (
-                // Show loading while questions are being prepared
-                <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-                  <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                <div className="bg-white rounded-2xl shadow-xl p-6 text-center"> {/* Reduced padding */}
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div> {/* Reduced size */}
                   <p className="text-gray-600">Preparing questions...</p>
-                  <div className="mt-4 text-xs text-gray-400">
-                    Game Template: {gameTemplate?.name || 'Loading...'}
-                  </div>
                 </div>
               ) : (
-                // Show actual game when questions are ready
                 <GameContainer>
                   {renderGameComponent()}
                 </GameContainer>
@@ -202,16 +230,12 @@ const GamePage = () => {
             </>
           )}
 
-          {/* Paused State */}
+          {/* Other states... */}
           {gameState === 'paused' && (
-            <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-              <div className="text-6xl mb-6">⏸️</div>
-              <h2 className="text-3xl font-bold text-gray-800 mb-4">
-                Game Paused
-              </h2>
-              <p className="text-gray-600 mb-8">
-                Take a break! Your progress is saved.
-              </p>
+            <div className="bg-white rounded-2xl shadow-xl p-6 text-center">
+              <div className="text-4xl mb-4">⏸️</div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Game Paused</h2>
+              <p className="text-gray-600 mb-6">Take a break! Your progress is saved.</p>
               <div className="space-x-4">
                 <button
                   onClick={resumeGame}
@@ -229,10 +253,8 @@ const GamePage = () => {
             </div>
           )}
 
-          {/* Finished State - UPDATED play again logic */}
           {gameState === 'finished' && (
             <GameResults onPlayAgain={() => {
-              // Reset and go back to home to restart the full flow
               resetGame();
               setTimeout(() => {
                 window.location.href = '/';
@@ -240,18 +262,13 @@ const GamePage = () => {
             }} />
           )}
 
-          {/* UPDATED: Idle State - Better fallback */}
-          {gameState === 'idle' && (
-            <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-              <div className="text-6xl mb-6">🎮</div>
-              <h2 className="text-3xl font-bold text-gray-800 mb-4">
-                Game Not Started
-              </h2>
-              <p className="text-gray-600 mb-8">
-                Please go back to home and start the game properly.
-              </p>
+          {gameState === 'idle' && !isLoading && (
+            <div className="bg-white rounded-2xl shadow-xl p-6 text-center">
+              <div className="text-4xl mb-4">🎮</div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Game Not Started</h2>
+              <p className="text-gray-600 mb-6">Please go back to home and start the game properly.</p>
               <button
-                onClick={() => window.location.href = '/'}
+                onClick={handleBackToHome}
                 className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-3 rounded-full font-semibold hover:scale-105 transition-transform"
               >
                 Back to Home

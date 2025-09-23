@@ -1,9 +1,11 @@
 // src/components/games/GameEngine/GameResults.jsx - FIXED VERSION
 import React from 'react';
 import { useGame } from '../../../context/GameContext';
+import { useNavigate } from 'react-router-dom';
 
 const GameResults = ({ onPlayAgain }) => {
   const { gameResult, score, resetGame } = useGame();
+  const navigate = useNavigate();
 
   // DEBUG: Log all score sources
   console.log('🎯 GameResults Debug:', {
@@ -12,6 +14,18 @@ const GameResults = ({ onPlayAgain }) => {
     contextScore: score,
     gameResult: gameResult
   });
+
+  const handlePlayAgain = () => {
+    console.log('🔄 Play Again clicked');
+    resetGame(); // Reset game state
+    navigate('/'); // Go to home to select game again
+  };
+
+  const handleBackToHome = () => {
+    console.log('🏠 Back to Home clicked');
+    resetGame(); // Reset game state  
+    navigate('/'); // Direct navigation to home
+  };
 
   // Use gameResult.totalScore as primary source, context score as fallback
   const displayScore = gameResult?.totalScore ?? score;
@@ -62,13 +76,13 @@ const GameResults = ({ onPlayAgain }) => {
       {/* Buttons */}
       <div className="space-x-4">
         <button
-          onClick={onPlayAgain}
+          onClick={handlePlayAgain}
           className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-3 rounded-full font-semibold hover:scale-105 transition-transform"
         >
           Play Again
         </button>
         <button
-          onClick={resetGame}
+          onClick={handleBackToHome}
           className="bg-gray-500 text-white px-8 py-3 rounded-full font-semibold hover:bg-gray-600 transition-colors"
         >
           Back to Home
