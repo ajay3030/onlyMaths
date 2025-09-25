@@ -1,6 +1,6 @@
 // src/components/features/Authentication/AuthModal/AuthModal.jsx
 import React, { useState } from 'react';
-// import { useAuth } from '../../../../context/AuthContext';
+import { useAuth } from '../../../../context/AuthContext';
 import { useUI } from '../../../../context/UIContext';
 import Modal from '../../../common/UI/Modal/Modal';
 import Button from '../../../common/UI/Button';

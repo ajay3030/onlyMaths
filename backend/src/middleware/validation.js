@@ -37,6 +37,23 @@ const authValidation = {
       .trim()
       .isLength({ min: 2, max: 50 })
       .withMessage('Name must be between 2-50 characters'),
+
+    body('email')
+    .optional()
+    .isEmail()
+    .withMessage('Must be a valid email')
+    .normalizeEmail(),
+    
+    body('avatar')
+    .optional()
+    .isLength({ min: 1, max: 10 })
+    .withMessage('Avatar must be valid'),
+    
+    body('bio')
+    .optional()
+    .isLength({ max: 200 })
+    .withMessage('Bio must be less than 200 characters')
+    .trim(),
     
     body('preferences.theme')
       .optional()

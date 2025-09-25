@@ -1,101 +1,165 @@
-// src/context/AuthContext/AuthProvider.jsx
-import React, { useState, useCallback, useEffect } from 'react';
+// src/context/AuthContext/AuthProvider.jsx - FIXED VERSION
+import React, { useState, useEffect } from 'react';
+import { authApi } from '../../service/authApi';
 import { AuthContext } from './AuthContext';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const isAuthenticated = Boolean(user);
-
-  // Load user from localStorage on mount
+  // Check if user is logged in on app start
   useEffect(() => {
-    const savedUser = localStorage.getItem('onlymaths_user');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (err) {
-        console.error('Failed to parse saved user:', err);
-        localStorage.removeItem('onlymaths_user');
+    checkAuthStatus();
+  }, []);
+
+  const checkAuthStatus = async () => {
+    try {
+      if (authApi.isAuthenticated()) {
+        console.log('🔍 Checking existing auth token...');
+        const userProfile = await authApi.getProfile();
+        setUser(userProfile);
+        setIsAuthenticated(true);
+        console.log('✅ User authenticated:', userProfile.name);
       }
-    }
-  }, []);
-
-  const login = useCallback(async (credentials) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const userData = {
-        id: Date.now(),
-        name: credentials.name || 'Math Explorer',
-        email: credentials.email,
-        avatar: '🧒',
-        joinDate: new Date().toISOString(),
-        gamesPlayed: 0,
-        totalScore: 0
-      };
-
-      setUser(userData);
-      localStorage.setItem('onlymaths_user', JSON.stringify(userData));
-    } catch (err) {
-        console.log(err);
-      setError('Login failed. Please try again.');
+    } catch (error) {
+      console.log('❌ Auth check failed:', error.message);
+      // Token might be expired, clear it
+      authApi.logout();
+      setUser(null);
+      setIsAuthenticated(false);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  };
 
-  const signup = useCallback(async (userData) => {
-    setIsLoading(true);
-    setError(null);
-
+  const login = async (credentials) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newUser = {
-        id: Date.now(),
-        name: userData.name,
-        email: userData.email,
-        avatar: userData.avatar || '🧒',
-        joinDate: new Date().toISOString(),
-        gamesPlayed: 0,
-        totalScore: 0
-      };
+      setIsLoading(true);
+      setError(null);
 
-      setUser(newUser);
-      localStorage.setItem('onlymaths_user', JSON.stringify(newUser));
-    } catch (err) {
-        console.log(err)
-      setError('Signup failed. Please try again.');
+      console.log('🔑 Attempting login...');
+      const response = await authApi.login(credentials);
+      
+      setUser(response.user);
+      setIsAuthenticated(true);
+      
+      console.log('✅ Login successful:', response.user.name);
+      return { success: true, user: response.user };
+
+    } catch (error) {
+      console.error('❌ Login failed:', error.message);
+      setError(error.message);
+      return { success: false, error: error.message };
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  };
 
-  const logout = useCallback(() => {
+  const register = async (userData) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      console.log('📝 Attempting registration...');
+      const response = await authApi.register(userData);
+      
+      setUser(response.user);
+      setIsAuthenticated(true);
+      
+      console.log('✅ Registration successful:', response.user.name);
+      return { success: true, user: response.user };
+
+    } catch (error) {
+      console.error('❌ Registration failed:', error.message);
+      setError(error.message);
+      return { success: false, error: error.message };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = () => {
+    console.log('🚪 Logging out...');
+    authApi.logout();
     setUser(null);
-    localStorage.removeItem('onlymaths_user');
-  }, []);
-
-  const clearError = useCallback(() => {
+    setIsAuthenticated(false);
     setError(null);
-  }, []);
+    console.log('✅ Logout successful');
+  };
+
+  // 🔥 FIXED: Proper updatePassword implementation using authApi
+  const updatePassword = async (passwordData) => {
+    try {
+      console.log('🔒 AuthContext: Updating password...');
+      
+      // Use authApi for consistency (create this method in authApi)
+      const response = await authApi.changePassword(passwordData);
+      console.log(response)
+      
+      console.log('✅ AuthContext: Password updated successfully');
+      return { success: true };
+
+    } catch (error) {
+      console.error('❌ AuthContext: Password update error:', error);
+      return { 
+        success: false, 
+        error: error.message || 'Failed to update password' 
+      };
+    }
+  };
+
+  // Profile update method (already good)
+  const updateProfile = async (profileData) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      console.log('🔄 Updating profile...');
+      const response = await authApi.updateProfile(profileData);
+      
+      console.log('📥 AuthProvider response:', response);
+      
+      // 🔥 UPDATED: Merge the data we sent with the response
+      let updatedUser = null;
+      
+      if (response.user) {
+        // Backend returned user, but merge our updates in case backend didn't save everything
+        updatedUser = { 
+          ...response.user,
+          ...profileData // Override with our updates to ensure UI shows what user entered
+        };
+      } else {
+        // Fallback: merge with existing user
+        updatedUser = { ...user, ...profileData };
+      }
+      
+      setUser(updatedUser);
+      console.log('✅ Profile updated:', updatedUser.name);
+      console.log('🔍 Updated user object:', updatedUser);
+      return { success: true, user: updatedUser };
+
+    } catch (error) {
+      console.error('❌ Profile update failed:', error.message);
+      setError(error.message);
+      return { success: false, error: error.message };
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const contextValue = {
     user,
     isAuthenticated,
     isLoading,
-    login,
-    logout,
-    signup,
     error,
-    clearError
+    login,
+    register,
+    logout,
+    updateProfile,
+    updatePassword, // ✅ Added to context value
+    checkAuthStatus
   };
 
   return (

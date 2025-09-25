@@ -1,22 +1,31 @@
-// src/context/ProfileContext/ProfileProvider.jsx - CLEAN VERSION
+// src/context/ProfileContext/ProfileProvider.jsx - BACKEND INTEGRATED VERSION
 import React, { useReducer, useCallback, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
-import { profileService } from '../../service/profileService'; // IMPORT from separate file
-import {ProfileContext} from './ProfileContext'
-// const ProfileContext = createContext();
+import { useGame } from '../GameContext'; // Add this to access backend stats
+import { ProfileContext } from './ProfileContext';
 
-// Profile reducer (keep the same)
+// Enhanced profile reducer
 const profileReducer = (state, action) => {
   switch (action.type) {
     case 'LOAD_PROFILE_START':
-      return { ...state, isLoading: true };
+      return { ...state, isLoading: true, error: null };
     
     case 'LOAD_PROFILE_SUCCESS':
       return {
         ...state,
         isLoading: false,
+        error: null,
         preferences: action.payload.preferences,
-        profileSettings: action.payload.profileSettings
+        profileSettings: action.payload.profileSettings,
+        stats: action.payload.stats, // 🆕 NEW: Add stats
+        gameHistory: action.payload.gameHistory // 🆕 NEW: Add game history
+      };
+    
+    case 'LOAD_PROFILE_ERROR':
+      return {
+        ...state,
+        isLoading: false,
+        error: action.payload
       };
     
     case 'UPDATE_PREFERENCES':
@@ -57,99 +66,259 @@ const profileReducer = (state, action) => {
   }
 };
 
-// Initial state
+// Enhanced initial state
 const initialState = {
   preferences: null,
   profileSettings: null,
-  isLoading: false
+  stats: null, // 🆕 NEW: Add stats
+  gameHistory: [], // 🆕 NEW: Add game history
+  isLoading: false,
+  error: null // 🆕 NEW: Add error handling
 };
 
 export const ProfileProvider = ({ children }) => {
   const [state, dispatch] = useReducer(profileReducer, initialState);
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
+  const { getUserStats, getUserGameHistory } = useGame(); // 🆕 NEW: Backend access
 
-  // Load profile data
+  // 🔥 UPDATED: Load profile data from backend
   const loadProfile = useCallback(async () => {
     if (!user?.id) return;
 
     dispatch({ type: 'LOAD_PROFILE_START' });
     
     try {
-      const data = await profileService.loadProfile(user.id);
-      
-      if (data) {
-        dispatch({ type: 'LOAD_PROFILE_SUCCESS', payload: data });
-      } else {
-        // Generate defaults for new users
-        const defaults = profileService.generateDefaults(user);
+      console.log('👤 ProfileContext: Loading profile data...');
+
+      // Fetch real backend data in parallel
+      const [backendStats, gameHistoryData] = await Promise.all([
+        getUserStats(),
+        getUserGameHistory({ limit: 50 })
+      ]);
+
+      console.log('✅ ProfileContext: Backend data received');
+
+      // Format game history
+      const formattedGameHistory = gameHistoryData?.results?.map(game => ({
+        id: game._id,
+        gameType: game.gameType,
+        gameName: game.gameName,
+        score: game.totalScore,
+        accuracy: game.accuracy,
+        date: game.completedAt,
+        duration: Math.round(game.totalTime / 1000),
+        difficulty: game.difficulty
+      })) || [];
+
+      // Enhanced stats with calculations
+      const enhancedStats = backendStats?.overall ? {
+        // Basic stats
+        totalGamesPlayed: backendStats.overall.totalGames || 0,
+        averageScore: Math.round(backendStats.overall.averageScore || 0),
+        bestScore: backendStats.overall.bestScore || 0,
+        averageAccuracy: Math.round(backendStats.overall.averageAccuracy || 0),
         
-        dispatch({ type: 'LOAD_PROFILE_SUCCESS', payload: defaults });
+        // Calculated stats
+        totalCorrectAnswers: formattedGameHistory.reduce((sum, game) => sum + (game.correctAnswers || 0), 0),
+        totalQuestionsAnswered: formattedGameHistory.reduce((sum, game) => sum + (game.questionsAnswered || 0), 0),
+        averageGameDuration: Math.round(formattedGameHistory.reduce((sum, game) => sum + game.duration, 0) / (formattedGameHistory.length || 1)),
         
-        // Save defaults
-        await profileService.savePreferences(user.id, defaults.preferences);
-        await profileService.saveProfileSettings(user.id, defaults.profileSettings);
-      }
+        // Time-based stats
+        thisWeekGames: countGamesInPeriod(formattedGameHistory, 7),
+        thisMonthGames: countGamesInPeriod(formattedGameHistory, 30),
+        
+        // Streaks and trends
+        bestStreak: calculateBestStreak(formattedGameHistory),
+        improvementTrend: calculateImprovementTrend(formattedGameHistory),
+        favoriteGameType: calculateFavoriteGameType(formattedGameHistory),
+        
+        // Join date for days active calculation
+        joinDate: user.createdAt
+      } : {
+        totalGamesPlayed: 0,
+        averageScore: 0,
+        bestScore: 0,
+        averageAccuracy: 0,
+        totalCorrectAnswers: 0,
+        totalQuestionsAnswered: 0,
+        averageGameDuration: 0,
+        thisWeekGames: 0,
+        thisMonthGames: 0,
+        bestStreak: 0,
+        improvementTrend: 'stable',
+        favoriteGameType: 'None yet',
+        joinDate: user.createdAt
+      };
+
+      // Generate preferences from user data
+      const preferences = {
+        privacy: {
+          showStats: true, // Default to showing stats
+          showAchievements: true,
+          showGameHistory: true
+        },
+        notifications: {
+          enabled: user.notifications !== false,
+          achievements: true,
+          gameReminders: true
+        },
+        display: {
+          theme: user.theme || 'light',
+          language: user.language || 'en'
+        }
+      };
+
+      // Generate profile settings from user data
+      const profileSettings = {
+        displayName: user.name,
+        avatar: user.avatar || '🧒',
+        bio: user.bio || '',
+        email: user.email
+      };
+
+      dispatch({ 
+        type: 'LOAD_PROFILE_SUCCESS', 
+        payload: {
+          preferences,
+          profileSettings,
+          stats: enhancedStats,
+          gameHistory: formattedGameHistory
+        }
+      });
+
+      console.log('🎉 ProfileContext: Profile loaded successfully');
+
     } catch (error) {
-      console.error('Failed to load profile:', error);
-      // Load defaults on error
-      const defaults = profileService.generateDefaults(user);
-      dispatch({ type: 'LOAD_PROFILE_SUCCESS', payload: defaults });
+      console.error('❌ ProfileContext: Failed to load profile:', error);
+      dispatch({ type: 'LOAD_PROFILE_ERROR', payload: error.message });
     }
-  }, [user]);
+  }, [user, getUserStats, getUserGameHistory]);
 
-  // Update preferences
+  // Helper functions for stats calculations
+  const countGamesInPeriod = (games, days) => {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    return games.filter(game => new Date(game.date) >= cutoff).length;
+  };
+
+  const calculateBestStreak = (games) => {
+    if (!games.length) return 0;
+    
+    let bestStreak = 0;
+    let currentStreak = 0;
+    
+    // Go through games chronologically (reverse order)
+    const chronologicalGames = [...games].reverse();
+    
+    for (const game of chronologicalGames) {
+      if (game.accuracy >= 70) {
+        currentStreak++;
+        bestStreak = Math.max(bestStreak, currentStreak);
+      } else {
+        currentStreak = 0;
+      }
+    }
+    
+    return bestStreak;
+  };
+
+  const calculateImprovementTrend = (games) => {
+    if (games.length < 5) return 'insufficient_data';
+    
+    const recent = games.slice(0, 5);
+    const older = games.slice(-5);
+    
+    const recentAvg = recent.reduce((sum, g) => sum + g.accuracy, 0) / recent.length;
+    const olderAvg = older.reduce((sum, g) => sum + g.accuracy, 0) / older.length;
+    
+    const difference = recentAvg - olderAvg;
+    
+    if (difference > 5) return 'improving';
+    if (difference < -5) return 'declining';
+    return 'stable';
+  };
+
+  const calculateFavoriteGameType = (games) => {
+    if (!games.length) return 'None yet';
+    
+    const typeCounts = games.reduce((counts, game) => {
+      counts[game.gameType] = (counts[game.gameType] || 0) + 1;
+      return counts;
+    }, {});
+    
+    return Object.entries(typeCounts)
+      .sort(([,a], [,b]) => b - a)[0]?.[0] || 'None yet';
+  };
+
+  // 🔥 UPDATED: Update preferences with backend
   const updatePreferences = useCallback(async (newPreferences) => {
-    dispatch({ type: 'UPDATE_PREFERENCES', payload: newPreferences });
-    
-    if (user?.id) {
-      try {
-        const updated = { ...state.preferences, ...newPreferences };
-        await profileService.savePreferences(user.id, updated);
-      } catch (error) {
-        console.error('Failed to save preferences:', error);
+    try {
+      console.log('🔄 ProfileContext: Updating preferences...', newPreferences);
+      
+      dispatch({ type: 'UPDATE_PREFERENCES', payload: newPreferences });
+      
+      // Update user preferences via auth context if needed
+      if (newPreferences.display?.theme) {
+        await updateProfile({ theme: newPreferences.display.theme });
       }
+      
+      console.log('✅ ProfileContext: Preferences updated');
+    } catch (error) {
+      console.error('❌ ProfileContext: Failed to update preferences:', error);
     }
-  }, [user?.id, state.preferences]);
+  }, [updateProfile]);
 
-  // Update profile settings
+  // 🔥 UPDATED: Update profile settings with backend
   const updateProfileSettings = useCallback(async (newSettings) => {
-    dispatch({ type: 'UPDATE_PROFILE_SETTINGS', payload: newSettings });
-    
-    if (user?.id) {
-      try {
-        const updated = { ...state.profileSettings, ...newSettings };
-        await profileService.saveProfileSettings(user.id, updated);
-      } catch (error) {
-        console.error('Failed to save profile settings:', error);
+    try {
+      console.log('🔄 ProfileContext: Updating profile settings...', newSettings);
+      
+      dispatch({ type: 'UPDATE_PROFILE_SETTINGS', payload: newSettings });
+      
+      // Update via auth context (which calls backend)
+      const updateData = {};
+      if (newSettings.displayName) updateData.name = newSettings.displayName;
+      if (newSettings.avatar) updateData.avatar = newSettings.avatar;
+      if (newSettings.bio) updateData.bio = newSettings.bio;
+      if (newSettings.email) updateData.email = newSettings.email;
+      
+      if (Object.keys(updateData).length > 0) {
+        await updateProfile(updateData);
       }
+      
+      console.log('✅ ProfileContext: Profile settings updated');
+    } catch (error) {
+      console.error('❌ ProfileContext: Failed to update profile settings:', error);
     }
-  }, [user?.id, state.profileSettings]);
+  }, [updateProfile]);
 
-  // Update avatar
+  // 🔥 UPDATED: Update avatar with backend
   const updateAvatar = useCallback(async (newAvatar) => {
-    dispatch({ type: 'UPDATE_AVATAR', payload: newAvatar });
-    
-    if (user?.id) {
-      try {
-        await profileService.updateProfileSetting(user.id, 'avatar', newAvatar);
-      } catch (error) {
-        console.error('Failed to save avatar:', error);
-      }
+    try {
+      console.log('🔄 ProfileContext: Updating avatar...', newAvatar);
+      
+      dispatch({ type: 'UPDATE_AVATAR', payload: newAvatar });
+      await updateProfile({ avatar: newAvatar });
+      
+      console.log('✅ ProfileContext: Avatar updated');
+    } catch (error) {
+      console.error('❌ ProfileContext: Failed to update avatar:', error);
     }
-  }, [user?.id]);
+  }, [updateProfile]);
 
-  // Update display name
+  // 🔥 UPDATED: Update display name with backend
   const updateDisplayName = useCallback(async (newName) => {
-    dispatch({ type: 'UPDATE_DISPLAY_NAME', payload: newName });
-    
-    if (user?.id) {
-      try {
-        await profileService.updateProfileSetting(user.id, 'displayName', newName);
-      } catch (error) {
-        console.error('Failed to save display name:', error);
-      }
+    try {
+      console.log('🔄 ProfileContext: Updating display name...', newName);
+      
+      dispatch({ type: 'UPDATE_DISPLAY_NAME', payload: newName });
+      await updateProfile({ name: newName });
+      
+      console.log('✅ ProfileContext: Display name updated');
+    } catch (error) {
+      console.error('❌ ProfileContext: Failed to update display name:', error);
     }
-  }, [user?.id]);
+  }, [updateProfile]);
 
   // Reset profile
   const resetProfile = useCallback(() => {

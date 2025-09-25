@@ -4,12 +4,12 @@ import React, {
   useCallback,
   useRef,
   useEffect,
-  useReducer,
 } from "react";
 import { GameContext } from "./GameContext";
 import { useAuth } from "../AuthContext";
 import { useUserStats } from "../UserStatsContext";
 import { gameService } from "../../service/gameService";
+import { gameApi } from "../../service/gameApi";
 // import GameEngine from '../../services/gameEngine';
 
 export const GameProvider = ({ children }) => {
@@ -145,73 +145,105 @@ export const GameProvider = ({ children }) => {
 
   // In GameProvider.jsx - ADD this function near the top of your functions
 
-// 1. UTILITY FUNCTIONS FIRST (add this if missing)
-const clearAllTimers = useCallback(() => {
-  console.log('🧹 Clearing all timers...');
-  if (timerRef.current) {
-    clearInterval(timerRef.current);
-    timerRef.current = null;
-  }
-  if (questionTimerRef.current) {
-    clearInterval(questionTimerRef.current);
-    questionTimerRef.current = null;
-  }
-  if (gameTimerRef.current) {
-    clearInterval(gameTimerRef.current);
-    gameTimerRef.current = null;
-  }
-  if (countdownRef.current) {
-    clearInterval(countdownRef.current);
-    countdownRef.current = null;
-  }
-}, []);
+// // 1. UTILITY FUNCTIONS FIRST (add this if missing)
+// const clearAllTimers = useCallback(() => {
+//   console.log('🧹 Clearing all timers...');
+//   if (timerRef.current) {
+//     clearInterval(timerRef.current);
+//     timerRef.current = null;
+//   }
+//   if (questionTimerRef.current) {
+//     clearInterval(questionTimerRef.current);
+//     questionTimerRef.current = null;
+//   }
+//   if (gameTimerRef.current) {
+//     clearInterval(gameTimerRef.current);
+//     gameTimerRef.current = null;
+//   }
+//   if (countdownRef.current) {
+//     clearInterval(countdownRef.current);
+//     countdownRef.current = null;
+//   }
+// }, []);
 
 
-  // In GameProvider.jsx - Update completeGame to clear currentQuestion
-   // In GameProvider.jsx - Make sure completeGame preserves the score
-const completeGame = useCallback(() => {
+// In GameProvider.jsx - UPDATE the completeGame function
+const completeGame = useCallback(async () => {
   if (!gameInstance) return;
 
   // Clear timers
   if (timerRef.current) clearInterval(timerRef.current);
-  if (questionTimerRef.current) clearInterval(questionTimerRef.current);  
+  if (questionTimerRef.current) clearInterval(questionTimerRef.current);
   if (gameTimerRef.current) clearInterval(gameTimerRef.current);
   if (countdownRef.current) clearInterval(countdownRef.current);
 
   try {
     console.log('🏁 Before completeGame - current score:', score);
     console.log('🏁 GameInstance score:', gameInstance.score);
-    
+
     const result = gameInstance.completeGame();
-    
+
     console.log('🎯 Game completion result:', {
       resultTotalScore: result.totalScore,
       currentScore: score,
       gameInstanceScore: gameInstance.score
     });
-    
+
     if (user) {
       result.userId = user.id;
       result.playerName = user.name;
     }
 
-    // DON'T clear the score here - preserve it for display
+    // Set local state
     setCurrentQuestion(null);
     setGameResult(result);
     setIsTimerActive(false);
     setGameState('finished');
 
-    if (addGameResult) {
-      addGameResult({
-        id: result.id,
-        gameType: result.gameType,
-        gameName: result.gameName,
-        score: result.totalScore, // Use result.totalScore
-        duration: Math.round(result.totalTime / 1000),
-        accuracy: result.accuracy,
-        date: result.completedAt,
-        difficulty: result.difficulty
-      });
+    // 🔥 ONLY save to backend and UserStats if user is authenticated
+    if (user && result) {
+      try {
+        console.log('💾 Saving game result to backend...');
+
+        // Format the result for backend using the helper function
+        const backendGameResult = gameApi.formatGameResultForBackend(result, gameTemplate);
+
+        // Save to backend
+        const savedResult = await gameApi.saveGameResult(backendGameResult);
+
+        console.log('✅ Game result saved to backend successfully:', {
+          gameType: result.gameType,
+          score: result.totalScore,
+          accuracy: result.accuracy
+        });
+
+        // Optionally update local result with backend data
+        if (savedResult.gameResult) {
+          setGameResult(prev => ({ ...prev, backendId: savedResult.gameResult._id }));
+        }
+
+        // 🔥 ONLY call addGameResult if user is authenticated AND addGameResult exists
+        if (addGameResult) {
+          addGameResult({
+            id: result.id,
+            gameType: result.gameType,
+            gameName: result.gameName,
+            score: result.totalScore,
+            duration: Math.round(result.totalTime / 1000),
+            accuracy: result.accuracy,
+            date: result.completedAt,
+            difficulty: result.difficulty
+          });
+          console.log('✅ Game result added to UserStats');
+        }
+
+      } catch (backendError) {
+        console.error('❌ Failed to save game result to backend:', backendError);
+        console.warn('⚠️ Game completed locally but not saved to backend - user can continue playing');
+      }
+    } else if (!user) {
+      console.log('ℹ️ Game completed without user authentication - results not saved');
+      console.log('🎮 Guest user can still see results on screen');
     }
 
     console.log('🎉 Game completed successfully with score:', result.totalScore);
@@ -219,7 +251,56 @@ const completeGame = useCallback(() => {
     setError(error.message);
     console.error('Failed to complete game:', error);
   }
-}, [gameInstance, user, addGameResult, score]);
+}, [gameInstance, user, addGameResult, score, gameTemplate]);
+
+  // 🆕 NEW: Add backend data fetching functions
+  const getUserGameHistory = useCallback(async (params = {}) => {
+    if (!user) {
+      console.log('⚠️ User must be logged in to view game history');
+      return { results: [], pagination: {} };
+    }
+
+    try {
+      console.log('📊 Fetching user game history from backend...');
+      const historyData = await gameApi.getGameHistory(params);
+      console.log('✅ Game history retrieved successfully:', historyData.results.length, 'games');
+      return historyData;
+    } catch (error) {
+      console.error('❌ Failed to get game history:', error);
+      // Return empty data instead of throwing
+      return { results: [], pagination: {}, error: error.message };
+    }
+  }, [user]);
+
+  const getUserStats = useCallback(async () => {
+    if (!user) {
+      console.log('⚠️ User must be logged in to view statistics');
+      return null;
+    }
+
+    try {
+      console.log('📈 Fetching user statistics from backend...');
+      const statsData = await gameApi.getUserStats();
+      console.log('✅ User statistics retrieved successfully');
+      return statsData;
+    } catch (error) {
+      console.error('❌ Failed to get user statistics:', error);
+      return null;
+    }
+  }, [user]);
+
+  const getLeaderboard = useCallback(async (params = {}) => {
+    try {
+      console.log('🏆 Fetching leaderboard from backend...');
+      const leaderboardData = await gameApi.getLeaderboard(params);
+      console.log('✅ Leaderboard retrieved successfully');
+      return leaderboardData;
+    } catch (error) {
+      console.error('❌ Failed to get leaderboard:', error);
+      return { leaderboard: [], error: error.message };
+    }
+  }, []);
+
 
 
   // NEW METHODS (add these for enhanced functionality)
@@ -474,6 +555,11 @@ const completeGame = useCallback(() => {
     nextQuestion,
     completeGame,
     resumeGame,
+
+     // 🆕 NEW: Backend integration functions
+    getUserGameHistory,
+    getUserStats,
+    getLeaderboard
   };
 
   return (

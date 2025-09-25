@@ -14,7 +14,8 @@ const SignupForm = ({ onSuccess }) => {
   });
   const [errors, setErrors] = useState({});
 
-  const { signup, isLoading } = useAuth();
+  // UPDATED: Use 'register' instead of 'signup' to match backend integration
+  const { register, isLoading, error } = useAuth();
   const { showNotification } = useUI();
 
   const avatarOptions = ['🧒', '👦', '👧', '🤓', '😎', '🤗', '🚀', '⭐'];
@@ -47,6 +48,8 @@ const SignupForm = ({ onSuccess }) => {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
+    } else if (!/^(?=.*[a-zA-Z])(?=.*\d)/.test(formData.password)) {
+      newErrors.password = 'Password must contain at least one letter and one number';
     }
     
     if (!formData.confirmPassword.trim()) {
@@ -59,18 +62,35 @@ const SignupForm = ({ onSuccess }) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // UPDATED: Handle backend API response format
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!validateForm()) return;
 
     try {
-      await signup(formData);
-      showNotification(`Welcome to OnlyMaths, ${formData.name}! 🎉`, 'success');
-      onSuccess();
+      console.log('📝 Attempting registration...');
+      
+      // Call backend API through AuthContext
+      const result = await register({
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+        avatar: formData.avatar // Optional: you can store avatar in user preferences
+      });
+
+      // Handle backend response
+      if (result.success) {
+        console.log('✅ Registration successful:', result.user.name);
+        showNotification(`Welcome to OnlyMaths, ${result.user.name}! 🎉`, 'success');
+        onSuccess();
+      } else {
+        console.error('❌ Registration failed:', result.error);
+        showNotification(result.error || 'Registration failed. Please try again.', 'error');
+      }
     } catch (err) {
-        console.log(err)
-      showNotification('Signup failed. Please try again.', 'error');
+      console.error('❌ Registration error:', err);
+      showNotification('Registration failed. Please check your connection.', 'error');
     }
   };
 
@@ -179,6 +199,20 @@ const SignupForm = ({ onSuccess }) => {
           )}
         </div>
       </div>
+
+      {/* Password Requirements */}
+      <div className="text-left">
+        <p className="text-xs text-gray-500">
+          Password must be at least 6 characters with letters and numbers
+        </p>
+      </div>
+
+      {/* Error Message from Backend */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+          <p className="text-red-600 text-sm">{error}</p>
+        </div>
+      )}
 
       {/* Submit Button */}
       <Button

@@ -8,6 +8,8 @@ export const AuthContext = createContext({
   login: () => {},
   logout: () => {},
   signup: () => {},
+  register:()=>{},
+  updatePassword:()=>{},
   error: null,
   clearError: () => {}
 });

@@ -42,7 +42,12 @@ export const GameContext = createContext({
   submitAnswer: () => {},       // Submit user answer to current question
   nextQuestion: () => {},       // Move to next question
   completeGame: () => {},       // Complete game and save results
-  resumeGame: () => {}          // Resume paused game
+  resumeGame: () => {} ,         // Resume paused game
+
+   // 🆕 NEW: Backend integration functions
+    getUserGameHistory:()=>{},
+    getUserStats:()=>{},
+    getLeaderboard:()=>{}
 });
 
 export default GameContext;

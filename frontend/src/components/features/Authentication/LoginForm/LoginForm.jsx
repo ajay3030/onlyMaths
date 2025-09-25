@@ -43,34 +43,57 @@ const LoginForm = ({ onSuccess }) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // UPDATED: Handle backend API response format
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!validateForm()) return;
 
     try {
-      await login(formData);
-      showNotification('Welcome back to OnlyMaths! 🎉', 'success');
-      onSuccess();
+      console.log('🔑 Attempting login...');
+      
+      // Call backend API through AuthContext
+      const result = await login({
+        email: formData.email,
+        password: formData.password
+      });
+
+      // Handle backend response
+      if (result.success) {
+        console.log('✅ Login successful:', result.user.name);
+        showNotification(`Welcome back, ${result.user.name}! 🎉`, 'success');
+        onSuccess();
+      } else {
+        console.error('❌ Login failed:', result.error);
+        showNotification(result.error || 'Login failed. Please try again.', 'error');
+      }
     } catch (err) {
-        console.log(err)
-      showNotification('Login failed. Please try again.', 'error');
+      console.error('❌ Login error:', err);
+      showNotification('Login failed. Please check your connection.', 'error');
     }
   };
 
-  // Demo login for quick access
+  // UPDATED: Demo login for testing (you can create this user in backend)
   const handleDemoLogin = async () => {
     try {
-      await login({
+      console.log('🎯 Attempting demo login...');
+      
+      const result = await login({
         email: 'demo@onlymaths.com',
-        name: 'Math Explorer',
         password: 'demo123'
       });
-      showNotification('Welcome, Math Explorer! 🚀', 'success');
-      onSuccess();
+
+      if (result.success) {
+        console.log('✅ Demo login successful');
+        showNotification(`Welcome, ${result.user.name}! 🚀`, 'success');
+        onSuccess();
+      } else {
+        console.error('❌ Demo login failed:', result.error);
+        showNotification('Demo login failed. Please try regular login.', 'error');
+      }
     } catch (err) {
-        console.log(err)
-      showNotification('Demo login failed. Please try again.', 'error');
+      console.error('❌ Demo login error:', err);
+      showNotification('Demo login failed. Please try regular login.', 'error');
     }
   };
 
